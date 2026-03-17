@@ -183,7 +183,7 @@ const Meetings = () => {
     // Trigger automated backend invite
     if (selectedAttendees.length > 0) {
         try {
-            await fetch("http://localhost:8000/send-meeting-invites", {
+            await fetch(`${import.meta.env.VITE_BACKEND_URL}/send-meeting-invites`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
