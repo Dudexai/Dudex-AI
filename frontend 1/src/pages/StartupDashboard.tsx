@@ -25,7 +25,7 @@ export const StartupDashboard = () => {
             setTimeout(() => setExportStatus("Writing report..."), 3000);
             setTimeout(() => setExportStatus("Preparing PDF..."), 7000);
 
-            const response = await fetch(`http://localhost:8000/export/investor-report/${plan.id}`, {
+           const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/export/investor-report/${plan.id}`, {
                 method: 'POST',
             });
 
