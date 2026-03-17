@@ -101,7 +101,7 @@ const Processing = () => {
 
       try {
         // Try the real backend API first
-        const response = await fetch("http://127.0.0.1:8000/generate-plan", {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/generate-plan`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
