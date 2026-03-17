@@ -177,7 +177,7 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
 
         if (status === "completed") {
             try {
-                await fetch(`http://localhost:8000/strategy/${planRaw.id}/events`, {
+                await fetch(`${import.meta.env.VITE_BACKEND_URL}/strategy/${planRaw.id}/events`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ event_type: "task_completed", payload: { task_id: taskId } })
@@ -222,7 +222,7 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
 
         if (isTaskCompleted) {
             try {
-                await fetch(`http://localhost:8000/strategy/${planRaw.id}/events`, {
+                await fetch(`${import.meta.env.VITE_BACKEND_URL}/strategy/${planRaw.id}/events`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ event_type: "task_completed", payload: { task_id: taskId } })
@@ -358,7 +358,7 @@ export const PlanProvider = ({ children }: { children: ReactNode }) => {
             const currentPlan = planRef.current;
             if (!currentPlan) return;
             try {
-                const res = await fetch(`http://localhost:8000/strategy/${currentPlan.id}/state`);
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/strategy/${currentPlan.id}/state`);
                 if (res.ok && mounted) {
                     const data = await res.json();
                     let merged = { ...currentPlan };
