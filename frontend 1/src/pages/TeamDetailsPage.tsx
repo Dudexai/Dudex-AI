@@ -110,7 +110,7 @@ export default function TeamDetailsPage() {
             const inviteLink = `${window.location.origin}/join?token=${token}`;
             
             try {
-                const response = await fetch("http://localhost:8000/send-invite", {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/send-invite`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
