@@ -116,7 +116,7 @@ const WorkTask = () => {
             fetchingRef.current = taskId;
             setLoadingGuide(true);
             try {
-                const response = await fetch("http://localhost:8000/generate-guide", {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/generate-guide`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
