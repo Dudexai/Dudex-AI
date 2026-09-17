@@ -1,7 +1,11 @@
 import os
-import re
+import json
 import httpx
 from dotenv import load_dotenv
+
+# ============================================================
+# LOAD ENVIRONMENT VARIABLES
+# ============================================================
 
 load_dotenv()
 
@@ -9,362 +13,941 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-HEADERS = {
-    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-    "Content-Type": "application/json",
-    "HTTP-Referer": "https://work.dudexai.com",
-    "X-Title": "Startup Canvas"
-}
+# ============================================================
+# OPENROUTER MODEL
+# ============================================================
 
-# Current OpenRouter model
-MODEL = "x-ai/grok-4.3"
+MODEL = "inclusionai/ling-3.0-flash-fin:free"
 
 
-async def generate_startup_plan(idea: str, days: int):
-    payload = {
-        "model": MODEL,
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are a startup planning expert. "
-                    "Return ONLY valid JSON."
-                )
-            },
-            {
-                "role": "user",
-                "content": f"""
-Startup idea: {idea}
-Timeline: {days} days
+# ============================================================
+# COMMON HEADERS
+# ============================================================
 
-Return a detailed startup plan in JSON format.
-
-Exactly:
-
-{{
- "title": "Startup Name",
- "summary": "One sentence summary",
- "tasks": [
-   {{
-     "title": "Task title",
-     "description": "Short description",
-     "priority": "High|Medium|Low",
-     "estimated_days": 1,
-     "phase": "Validation|Build|Launch"
-   }}
- ],
- "kpis": ["KPI 1", "KPI 2"],
- "risks": ["Risk 1", "Risk 2"]
-}}
-
-IMPORTANT:
-
-- You MUST provide exactly as many tasks as the number of days specified in the user request.
-- If the user asks for a 30-day plan, you MUST provide 30 distinct, meaningful tasks.
-- Every single day must have at least one unique, actionable task.
-- Do NOT leave any days with zero tasks.
-- Each task should be practical and relevant to the startup idea.
-- Return ONLY the raw JSON string.
-- Do not wrap the response in markdown code blocks.
-- Do not add explanations.
-"""
-            }
-        ],
-        "temperature": 0.3
+def get_headers():
+    return {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://work.dudexai.com",
+        "X-Title": "DudeX AI",
     }
 
-    async with httpx.AsyncClient(timeout=90) as client:
-        try:
-            print(
-                f"DEBUG: Generating plan for idea: "
-                f"{idea[:50]}..."
-            )
 
-            res = await client.post(
-                OPENROUTER_URL,
-                headers=HEADERS,
-                json=payload
-            )
+# ============================================================
+# COMMON OPENROUTER FUNCTION
+# ============================================================
 
-            if res.status_code != 200:
-                print(
-                    f"DEBUG: OpenRouter error "
-                    f"{res.status_code}: {res.text}"
-                )
-                res.raise_for_status()
-
-            data = res.json()
-
-            content = data["choices"][0]["message"]["content"]
-
-            if not content:
-                raise ValueError("Empty response from AI")
-
-            # Extract JSON object
-            match = re.search(
-                r'\{.*\}',
-                content,
-                re.DOTALL
-            )
-
-            if match:
-                return match.group(0)
-
-            # Fallback cleanup
-            content = (
-                content
-                .replace("```json", "")
-                .replace("```", "")
-                .strip()
-            )
-
-            return content
-
-        except Exception as e:
-            print(
-                f"Plan Generation Error: {str(e)}"
-            )
-            raise e
-
-
-async def generate_chat_response(
-    context: str,
-    message: str
+async def call_openrouter(
+    messages,
+    max_tokens=5000,
+    temperature=0.75
 ):
+    """
+    Sends a request to OpenRouter and returns the AI response.
+    """
+
+    if not OPENROUTER_API_KEY:
+        raise Exception(
+            "OPENROUTER_API_KEY is not configured."
+        )
+
     payload = {
         "model": MODEL,
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are a helpful startup mentor AI. "
-                    "You have access to the user's current startup plan."
-                )
-            },
-            {
-                "role": "user",
-                "content": f"""
-Current Plan Context:
-{context}
-
-User Query:
-{message}
-
-Please answer the user's query clearly and concisely based on
-their startup plan.
-
-If they ask to change something, explain that you can provide
-advice, but they should regenerate their plan with the new
-details in the intake form.
-"""
-            }
-        ],
-        "temperature": 0.5
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
     }
 
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
 
-            print(
-                f"DEBUG: Chat request - "
-                f"Model: {payload['model']}, "
-                f"Message: {message[:50]}..."
-            )
+        async with httpx.AsyncClient(
+            timeout=120.0
+        ) as client:
 
-            res = await client.post(
+            response = await client.post(
                 OPENROUTER_URL,
-                headers=HEADERS,
+                headers=get_headers(),
                 json=payload
             )
 
-            if res.status_code != 200:
-                print(
-                    f"DEBUG: OpenRouter error "
-                    f"{res.status_code}: {res.text}"
+            print(
+                f"DEBUG: OpenRouter status: "
+                f"{response.status_code}"
+            )
+
+            # ==================================================
+            # SUCCESS
+            # ==================================================
+
+            if response.status_code == 200:
+
+                data = response.json()
+
+                choices = data.get(
+                    "choices",
+                    []
                 )
-                res.raise_for_status()
 
-            data = res.json()
+                if not choices:
+                    raise Exception(
+                        "OpenRouter returned no choices."
+                    )
 
-            content = data["choices"][0]["message"]["content"]
+                message = choices[0].get(
+                    "message",
+                    {}
+                )
 
-            if not content:
-                raise ValueError("Empty response from AI")
+                content = message.get(
+                    "content"
+                )
 
-            return content
+                if not content:
+                    raise Exception(
+                        "OpenRouter returned empty content."
+                    )
+
+                return content
+
+            # ==================================================
+            # RATE LIMIT
+            # ==================================================
+
+            if response.status_code == 429:
+
+                print(
+                    "DEBUG: OpenRouter rate limit:"
+                )
+
+                print(response.text)
+
+                raise Exception(
+                    "The free AI model is temporarily "
+                    "rate limited. Please try again shortly."
+                )
+
+            # ==================================================
+            # PAYMENT / CREDIT ERROR
+            # ==================================================
+
+            if response.status_code == 402:
+
+                print(
+                    "DEBUG: OpenRouter credit/payment error:"
+                )
+
+                print(response.text)
+
+                raise Exception(
+                    "OpenRouter returned a credit/payment error."
+                )
+
+            # ==================================================
+            # OTHER API ERRORS
+            # ==================================================
+
+            print(
+                f"DEBUG: OpenRouter error "
+                f"{response.status_code}:"
+            )
+
+            print(response.text)
+
+            raise Exception(
+                f"OpenRouter API error "
+                f"{response.status_code}"
+            )
+
+    except httpx.TimeoutException:
+
+        print(
+            "DEBUG: OpenRouter request timed out."
+        )
+
+        raise Exception(
+            "OpenRouter request timed out. "
+            "Please try again."
+        )
+
+    except httpx.RequestError as e:
+
+        print(
+            f"DEBUG: OpenRouter connection error: {e}"
+        )
+
+        raise Exception(
+            "Unable to connect to OpenRouter."
+        )
+
+
+# ============================================================
+# GENERATE STARTUP PLAN
+# ============================================================
+
+async def generate_startup_plan(
+    startup_idea,
+    user_goal=None,
+    additional_context=None
+):
+    """
+    Generates a complete startup/project execution plan.
+    """
+
+    print(
+        f"DEBUG: Generating startup plan for: "
+        f"{startup_idea}"
+    )
+
+    context_text = ""
+
+    if user_goal:
+        context_text += f"""
+USER GOAL:
+{user_goal}
+"""
+
+    if additional_context:
+        context_text += f"""
+ADDITIONAL CONTEXT:
+{additional_context}
+"""
+
+    messages = [
+        {
+            "role": "system",
+            "content": """
+You are DudeX AI, an expert startup strategist,
+product manager, software architect and project mentor.
+
+Your job is to convert a user's idea into a practical,
+realistic and detailed execution plan.
+
+IMPORTANT:
+
+Do not give generic advice.
+
+The plan must be specifically based on the user's idea.
+
+Analyze:
+
+- What the idea actually does
+- Who will use it
+- The main problem it solves
+- Required features
+- MVP scope
+- Technology requirements
+- Database requirements
+- Backend requirements
+- Frontend requirements
+- Authentication if needed
+- APIs if needed
+- AI requirements if needed
+- Testing
+- Deployment
+- Launch
+- Future improvements
+
+Create a realistic day-by-day execution plan.
+
+Each day must contain actual work.
+
+Avoid repetitive content.
+
+A day should never simply say:
+"Continue development"
+"Work on the project"
+"Test the application"
+
+Instead explain exactly what should be done.
+
+For example:
+
+Bad:
+"Develop the frontend."
+
+Good:
+"Create the landing page with a navigation bar,
+hero section, feature cards, CTA button and responsive
+mobile layout."
+
+The plan should be useful for a student or developer
+who wants to actually build the project.
+
+Return detailed information.
+
+When JSON is requested, return valid JSON only.
+"""
+        },
+        {
+            "role": "user",
+            "content": f"""
+PROJECT IDEA:
+
+{startup_idea}
+
+{context_text}
+
+Create a practical and detailed project execution plan
+for this idea.
+
+Make every phase and day specific to this project.
+"""
+        }
+    ]
+
+    try:
+
+        result = await call_openrouter(
+            messages=messages,
+            max_tokens=5000,
+            temperature=0.75
+        )
+
+        return result
 
     except Exception as e:
+
         print(
-            f"AI Chat Error: {str(e)}"
+            f"Startup Plan Generation Error: {e}"
         )
 
-        return (
-            "I'm sorry, I'm having trouble processing "
-            "your request right now"
+        raise
+
+
+# ============================================================
+# GENERATE CHAT RESPONSE
+# ============================================================
+
+async def generate_chat_response(
+    messages,
+    max_tokens=3000
+):
+    """
+    Generates normal conversational AI responses.
+    """
+
+    print(
+        "DEBUG: Generating chat response"
+    )
+
+    try:
+
+        result = await call_openrouter(
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=0.75
         )
 
+        return result
+
+    except Exception as e:
+
+        print(
+            f"Chat Generation Error: {e}"
+        )
+
+        raise
+
+
+# ============================================================
+# GENERATE TASK GUIDE
+# ============================================================
 
 async def generate_task_guide(
-    task_title: str,
-    task_description: str,
-    phase: str,
-    day: int
+    task,
+    context=None
 ):
-    payload = {
-        "model": MODEL,
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are a professional startup consultant. "
-                    "Your goal is to provide a comprehensive, "
-                    "actionable guide for a specific startup task. "
-                    "Return ONLY valid JSON."
-                )
-            },
-            {
-                "role": "user",
-                "content": f"""
-Generate a professional guide for the following startup task:
+    """
+    Generates a detailed, task-specific guide.
+    """
 
-Task: {task_title}
+    print(
+        f"DEBUG: Generating guide for task: {task}"
+    )
 
-Description:
-{task_description}
+    context_text = ""
 
-Phase:
-{phase}
+    if context:
+        context_text = f"""
+PROJECT CONTEXT:
+{context}
+"""
 
-Timeline:
-Day {day}
+    # ========================================================
+    # TASK GUIDE SYSTEM PROMPT
+    # ========================================================
 
-The guide must be structured in JSON with the following fields:
+    system_prompt = """
+You are DudeX AI.
 
-{{
-  "brief_explanation":
-    "A high-level 1-2 sentence explanation of the task.",
+You are an expert technical mentor, software developer,
+startup advisor, researcher and project instructor.
 
-  "description":
-    "A detailed explanation of why this task is being performed and its significance.",
+Your job is to take ONE specific task from a project plan
+and create a highly practical guide explaining exactly how
+the user should complete that task.
 
-  "workflow":
-    ["Step 1", "Step 2", "Step 3", "..."],
+============================================================
+MOST IMPORTANT RULE
+============================================================
 
-  "why_this_process":
-    "Strategic rationale for following this specific process.",
+NEVER produce generic content.
 
-  "how_to_do_this":
-    "Practical tactical steps and tools to execute the task.",
+The response MUST be based specifically on the task.
 
-  "guidance_links":
-    [
-      {{"title": "Link Title", "url": "https://example.com"}}
+For example, if the task is:
+
+"Conduct market research for a food delivery application"
+
+Do NOT respond with:
+
+"Research the market."
+"Check competitors."
+"Follow standard practices."
+
+Instead explain:
+
+- Which competitors to investigate
+- Which features to compare
+- Which pricing information to collect
+- How to analyze customer reviews
+- How to organize the findings
+- What conclusions to draw
+- What the final research document should contain
+
+============================================================
+TASK-SPECIFIC REASONING
+============================================================
+
+Before generating the response:
+
+1. Understand exactly what the task means.
+2. Identify the expected outcome.
+3. Determine the actual work required.
+4. Identify appropriate tools.
+5. Break the work into logical steps.
+6. Explain how to verify completion.
+
+============================================================
+IF THE TASK IS TECHNICAL
+============================================================
+
+Include relevant information such as:
+
+- Programming language
+- Framework
+- Libraries
+- APIs
+- Database
+- Files/components
+- Commands
+- Configuration
+- Testing
+- Debugging
+- Deployment
+
+Only include technologies that actually make sense
+for the task.
+
+============================================================
+IF THE TASK IS RESEARCH
+============================================================
+
+Explain:
+
+- What to research
+- Where to research
+- What data to collect
+- How to organize the data
+- How to compare findings
+- How to identify patterns
+- What decisions should result from the research
+
+============================================================
+IF THE TASK IS DESIGN
+============================================================
+
+Explain:
+
+- Screens
+- Components
+- Layout
+- User flow
+- UX
+- Responsive behavior
+- Validation
+- Accessibility
+- Visual consistency
+
+============================================================
+IF THE TASK IS BUSINESS / STARTUP RELATED
+============================================================
+
+Explain:
+
+- Target customers
+- Competitors
+- Market information
+- Customer needs
+- Pricing if relevant
+- Business assumptions
+- Validation
+- Expected business outcome
+
+============================================================
+WRITING REQUIREMENTS
+============================================================
+
+The guide must:
+
+- Be specific
+- Be practical
+- Be actionable
+- Be understandable to beginners
+- Still contain technically useful information
+- Avoid repetition
+- Avoid filler
+- Avoid generic statements
+- Give examples where useful
+
+Every workflow step must contain a real action.
+
+============================================================
+JSON FORMAT
+============================================================
+
+Return ONLY valid JSON.
+
+Do NOT use markdown.
+
+Do NOT use ```json.
+
+Do NOT add text before or after the JSON.
+
+Use exactly this structure:
+
+{
+    "brief_explanation": "...",
+
+    "description": "...",
+
+    "workflow": [
+        {
+            "step": 1,
+            "title": "...",
+            "details": "...",
+            "tools": [],
+            "example": "..."
+        }
     ],
 
-  "suitable_links":
-    [
-      {{"title": "Tool or Resource Title", "url": "https://example.com"}}
-    ]
-}}
+    "why_this_process": "...",
 
-Requirements:
+    "how_to_do_this": [
+        "...",
+        "...",
+        "..."
+    ],
 
-- Ensure the content is professional, insightful, and specific
-  to the task context.
-- Provide actionable steps.
-- Only provide valid, high-quality documentation links.
-- Prefer reputable official sources such as:
-  Stripe, AWS, HubSpot, GitHub, Google, Microsoft,
-  official documentation, and other authoritative sources.
-- DO NOT hallucinate URLs.
-- Return ONLY the raw JSON string.
-- Do not wrap the response in markdown code blocks.
-- Do not add explanations.
+    "tools_required": [
+        {
+            "name": "...",
+            "purpose": "..."
+        }
+    ],
+
+    "expected_output": "...",
+
+    "common_mistakes": [
+        "...",
+        "...",
+        "..."
+    ],
+
+    "completion_checklist": [
+        "...",
+        "...",
+        "..."
+    ],
+
+    "guidance_links": [],
+
+    "suitable_links": []
+}
+
+============================================================
+QUALITY REQUIREMENTS
+============================================================
+
+workflow:
+- Minimum 4 steps
+- Maximum 8 steps
+- Every step must be different
+- Every step must directly relate to the task
+
+tools_required:
+- Include realistic tools
+- Do not add unnecessary tools
+
+expected_output:
+- Must describe a concrete final result
+
+common_mistakes:
+- Must be specific to the task
+
+completion_checklist:
+- Must help the user verify that the task is complete
+
+guidance_links:
+- Do not invent URLs
+
+suitable_links:
+- Do not invent URLs
+
+IMPORTANT:
+
+The response should feel like a mentor personally explaining
+how to complete THIS task.
+
+Do not use generic templates.
 """
-            }
-        ],
-        "temperature": 0.4
-    }
 
-    async with httpx.AsyncClient(timeout=120) as client:
+
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt
+        },
+        {
+            "role": "user",
+            "content": f"""
+TASK:
+
+{task}
+
+{context_text}
+
+Analyze the task carefully.
+
+Generate a detailed and practical guide specifically
+for this task.
+
+Do not give generic instructions.
+
+Every section must contain information that is useful
+for completing the actual task.
+"""
+        }
+    ]
+
+    try:
+
+        result = await call_openrouter(
+            messages=messages,
+            max_tokens=5000,
+            temperature=0.75
+        )
+
+        # ====================================================
+        # CLEAN RESPONSE
+        # ====================================================
+
+        cleaned_result = result.strip()
+
+        # Remove ```json
+        if cleaned_result.startswith(
+            "```json"
+        ):
+
+            cleaned_result = cleaned_result[
+                7:
+            ]
+
+        # Remove ```
+        elif cleaned_result.startswith(
+            "```"
+        ):
+
+            cleaned_result = cleaned_result[
+                3:
+            ]
+
+        if cleaned_result.endswith(
+            "```"
+        ):
+
+            cleaned_result = cleaned_result[
+                :-3
+            ]
+
+        cleaned_result = cleaned_result.strip()
+
+        # ====================================================
+        # VALIDATE JSON
+        # ====================================================
+
         try:
 
-            print(
-                f"DEBUG: Generating guide for task: "
-                f"{task_title}..."
+            parsed_result = json.loads(
+                cleaned_result
             )
 
-            res = await client.post(
-                OPENROUTER_URL,
-                headers=HEADERS,
-                json=payload
-            )
+            if not isinstance(
+                parsed_result,
+                dict
+            ):
 
-            if res.status_code != 200:
-
-                print(
-                    f"DEBUG: OpenRouter error "
-                    f"{res.status_code}: {res.text}"
+                raise ValueError(
+                    "AI response is not a JSON object."
                 )
 
-                # OpenRouter insufficient credits
-                if res.status_code == 402:
-                    return """{
-                      "brief_explanation":
-                        "Credit limit reached. This is a generic fallback guide.",
-
-                      "description":
-                        "Your API key does not have enough credits to generate a custom guide.",
-
-                      "workflow": [
-                        "Follow standard practices",
-                        "Check execution plan"
-                      ],
-
-                      "why_this_process":
-                        "Fallback process when AI is unavailable.",
-
-                      "how_to_do_this":
-                        "Reflect on the task description and execute manually.",
-
-                      "guidance_links": [],
-
-                      "suitable_links": []
-                    }"""
-
-                res.raise_for_status()
-
-            data = res.json()
-
-            content = data["choices"][0]["message"]["content"]
-
-            if not content:
-                raise ValueError("Empty response from AI")
-
-            # Extract JSON object
-            match = re.search(
-                r'\{.*\}',
-                content,
-                re.DOTALL
+            print(
+                "DEBUG: Task guide JSON validated successfully."
             )
 
-            if match:
-                return match.group(0)
-
-            # Fallback cleanup
-            content = (
-                content
-                .replace("```json", "")
-                .replace("```", "")
-                .strip()
+            return json.dumps(
+                parsed_result,
+                ensure_ascii=False
             )
 
-            return content
-
-        except Exception as e:
+        except json.JSONDecodeError:
 
             print(
-                f"Guide Generation Error: {str(e)}"
+                "DEBUG: AI returned invalid JSON."
             )
 
-            raise e
+            print(
+                f"DEBUG AI RESPONSE: "
+                f"{cleaned_result}"
+            )
+
+            # =================================================
+            # TRY TO EXTRACT JSON
+            # =================================================
+
+            start = cleaned_result.find(
+                "{"
+            )
+
+            end = cleaned_result.rfind(
+                "}"
+            )
+
+            if (
+                start != -1
+                and end != -1
+                and end > start
+            ):
+
+                possible_json = (
+                    cleaned_result[
+                        start:end + 1
+                    ]
+                )
+
+                try:
+
+                    parsed_result = json.loads(
+                        possible_json
+                    )
+
+                    return json.dumps(
+                        parsed_result,
+                        ensure_ascii=False
+                    )
+
+                except json.JSONDecodeError:
+
+                    pass
+
+            raise Exception(
+                "AI returned an invalid guide format."
+            )
+
+    except Exception as e:
+
+        print(
+            f"Guide Generation Error: {e}"
+        )
+
+        # ====================================================
+        # FALLBACK
+        # ====================================================
+
+        fallback = {
+            "brief_explanation":
+                f"The AI guide for '{task}' "
+                "could not be generated right now.",
+
+            "description":
+                "The AI service was unable to provide "
+                "a complete task-specific guide. "
+                "Please try again shortly.",
+
+            "workflow": [
+                {
+                    "step": 1,
+                    "title":
+                        "Understand the task",
+
+                    "details":
+                        f"Review '{task}' and identify "
+                        "the exact result that needs "
+                        "to be produced.",
+
+                    "tools": [],
+
+                    "example": ""
+                },
+
+                {
+                    "step": 2,
+                    "title":
+                        "Break the task into actions",
+
+                    "details":
+                        "Divide the task into smaller "
+                        "actions that can be completed "
+                        "and verified individually.",
+
+                    "tools": [],
+
+                    "example": ""
+                },
+
+                {
+                    "step": 3,
+                    "title":
+                        "Complete the work",
+
+                    "details":
+                        "Perform each action and keep "
+                        "track of important results.",
+
+                    "tools": [],
+
+                    "example": ""
+                },
+
+                {
+                    "step": 4,
+                    "title":
+                        "Verify the result",
+
+                    "details":
+                        "Check the completed work against "
+                        "the original task requirements.",
+
+                    "tools": [],
+
+                    "example": ""
+                }
+            ],
+
+            "why_this_process":
+                "Breaking a task into smaller actions "
+                "makes the work easier to execute "
+                "and verify.",
+
+            "how_to_do_this": [
+                f"Review the requirements of '{task}'.",
+                "Break the work into measurable actions.",
+                "Complete and verify each action."
+            ],
+
+            "tools_required": [],
+
+            "expected_output":
+                "A completed and verified implementation "
+                "of the requested task.",
+
+            "common_mistakes": [
+                "Ignoring the original requirements.",
+                "Skipping important steps.",
+                "Not checking the final result."
+            ],
+
+            "completion_checklist": [
+                "All requirements have been addressed.",
+                "The completed work has been tested or reviewed.",
+                "The expected result is available."
+            ],
+
+            "guidance_links": [],
+
+            "suitable_links": []
+        }
+
+        return json.dumps(
+            fallback,
+            ensure_ascii=False
+        )
+
+
+# ============================================================
+# TEST OPENROUTER CONNECTION
+# ============================================================
+
+async def test_openrouter():
+    """
+    Simple OpenRouter connection test.
+    """
+
+    print(
+        "DEBUG: Testing OpenRouter..."
+    )
+
+    messages = [
+        {
+            "role": "system",
+            "content":
+                "You are a helpful AI assistant."
+        },
+        {
+            "role": "user",
+            "content":
+                "Reply with exactly: DudeX AI is working."
+        }
+    ]
+
+    try:
+
+        result = await call_openrouter(
+            messages=messages,
+            max_tokens=100,
+            temperature=0.5
+        )
+
+        print(
+            "========================================"
+        )
+
+        print(
+            "OPENROUTER TEST SUCCESS"
+        )
+
+        print(
+            "========================================"
+        )
+
+        print(result)
+
+        return result
+
+    except Exception as e:
+
+        print(
+            "========================================"
+        )
+
+        print(
+            "OPENROUTER TEST FAILED"
+        )
+
+        print(
+            "========================================"
+        )
+
+        print(e)
+
+        return None
