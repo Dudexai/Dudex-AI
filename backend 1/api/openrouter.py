@@ -213,6 +213,8 @@ Return ONLY valid JSON in exactly this structure:
 Rules:
 - workflow must contain 4 to 8 specific steps.
 - Every step must directly relate to the task.
+- how_to_do_this, common_mistakes, completion_checklist, guidance_links,
+  and suitable_links must always be arrays.
 - Do not invent URLs.
 - Return JSON only.
 """
@@ -291,6 +293,21 @@ Rules:
         return json.dumps(fallback, ensure_ascii=False)
 
 
+def _as_string_list(value):
+    """Normalize AI output to the array shape consumed by the frontend."""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        return [
+            line.strip().lstrip("-•").strip()
+            for line in value.splitlines()
+            if line.strip()
+        ]
+    return [str(value)]
+
+
 def _clean_json(value):
     cleaned = value.strip()
 
@@ -308,17 +325,32 @@ def _clean_json(value):
         parsed = json.loads(cleaned)
         if not isinstance(parsed, dict):
             raise ValueError("AI response is not a JSON object.")
-        return json.dumps(parsed, ensure_ascii=False)
     except json.JSONDecodeError:
         start = cleaned.find("{")
         end = cleaned.rfind("}")
 
-        if start != -1 and end > start:
-            parsed = json.loads(cleaned[start : end + 1])
-            if isinstance(parsed, dict):
-                return json.dumps(parsed, ensure_ascii=False)
+        if start == -1 or end <= start:
+            raise Exception("AI returned an invalid JSON format.")
 
-        raise Exception("AI returned an invalid JSON format.")
+        parsed = json.loads(cleaned[start : end + 1])
+        if not isinstance(parsed, dict):
+            raise ValueError("AI response is not a JSON object.")
+
+    for field in (
+        "how_to_do_this",
+        "common_mistakes",
+        "completion_checklist",
+        "guidance_links",
+        "suitable_links",
+    ):
+        parsed[field] = _as_string_list(parsed.get(field))
+
+    if not isinstance(parsed.get("workflow"), list):
+        parsed["workflow"] = []
+    if not isinstance(parsed.get("tools_required"), list):
+        parsed["tools_required"] = []
+
+    return json.dumps(parsed, ensure_ascii=False)
 
 
 async def generate_strategy_analysis(plan_state):
