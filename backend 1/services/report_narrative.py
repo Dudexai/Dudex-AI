@@ -1,4 +1,4 @@
-from api.openrouter import HEADERS, OPENROUTER_URL
+from api.openrouter import get_headers, OPENROUTER_URL
 import httpx
 import json
 
@@ -58,7 +58,7 @@ Return ONLY the markdown text.
         try:
             res = await client.post(
                 OPENROUTER_URL,
-                headers=HEADERS,
+                headers=get_headers(),
                 json=payload
             )
             res.raise_for_status()
