@@ -1,12 +1,16 @@
 import sqlite3
+from pathlib import Path
 from sqlite3 import Connection
 
-DB_PATH = "startup_os.db"
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "startup_os.db"
+
 
 def get_db_connection() -> Connection:
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
+
 
 def init_db():
     conn = get_db_connection()
