@@ -3,7 +3,7 @@ version: '3.8'
 services:
   backend:
     build:
-      context: ./backend
+      context: ./backend 1
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
@@ -15,7 +15,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./frontend 1
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
