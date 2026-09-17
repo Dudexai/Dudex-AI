@@ -14,8 +14,19 @@ from database import init_db
 from api.email_service import start_scheduler, stop_scheduler
 
 
-app = FastAPI()
+# ================================================================
+# APP
+# ================================================================
 
+app = FastAPI(
+    title="DudeX AI",
+    version="1.0.0",
+)
+
+
+# ================================================================
+# STARTUP / SHUTDOWN
+# ================================================================
 
 @app.on_event("startup")
 def on_startup():
@@ -28,9 +39,17 @@ def on_shutdown():
     stop_scheduler()
 
 
+# ================================================================
+# ROUTERS
+# ================================================================
+
 app.include_router(strategy_router)
 app.include_router(export_router)
 
+
+# ================================================================
+# CORS
+# ================================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,6 +59,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# ================================================================
+# REQUEST MODELS
+# ================================================================
 
 class GenerateRequest(BaseModel):
     idea: str
@@ -77,23 +100,50 @@ class MeetingInviteRequest(BaseModel):
     startup_name: str
 
 
+# ================================================================
+# ROOT
+# ================================================================
+
 @app.get("/")
 def root():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "service": "DudeX AI",
+    }
 
+
+# ================================================================
+# GENERATE STARTUP PLAN
+# ================================================================
 
 @app.post("/generate-plan")
 async def generate_plan(req: GenerateRequest):
-    if req.days < 1:
-        raise HTTPException(status_code=400, detail="days must be at least 1")
-
-    raw = await generate_startup_plan(req.idea, days=req.days)
-
     try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        return {"raw": raw}
+        raw = await generate_startup_plan(
+            startup_idea=req.idea,
+            days=req.days,
+        )
 
+        try:
+            return json.loads(raw)
+
+        except (json.JSONDecodeError, TypeError):
+            return {
+                "raw": raw
+            }
+
+    except Exception as e:
+        print(f"Plan Generation Error: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
+        )
+
+
+# ================================================================
+# CHAT
+# ================================================================
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
@@ -102,10 +152,23 @@ async def chat_endpoint(req: ChatRequest):
             context=req.context,
             message=req.message,
         )
-        return {"response": response}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
+        return {
+            "response": response
+        }
+
+    except Exception as e:
+        print(f"Chat Error: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
+        )
+
+
+# ================================================================
+# GENERATE TASK GUIDE
+# ================================================================
 
 @app.post("/generate-guide")
 async def generate_guide_endpoint(req: GuideRequest):
@@ -116,57 +179,104 @@ async def generate_guide_endpoint(req: GuideRequest):
             phase=req.phase,
             day=req.day,
         )
-        return json.loads(raw)
-    except json.JSONDecodeError:
+
+        try:
+            return json.loads(raw)
+
+        except (json.JSONDecodeError, TypeError):
+            return {
+                "raw": raw
+            }
+
+    except Exception as e:
+        print(f"Guide Error: {e}")
+
         raise HTTPException(
             status_code=500,
-            detail="AI returned an invalid guide format.",
+            detail=str(e),
         )
-    except Exception as e:
-        print(f"Guide Error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
+
+# ================================================================
+# SEND INVITE
+# ================================================================
 
 @app.post("/send-invite")
 async def send_invite_endpoint(req: InviteRequest):
-    from api.email_service import send_invite_email
 
-    success = send_invite_email(
-        to_email=req.to_email,
-        startup_name=req.startup_name,
-        inviter_email=req.inviter_email,
-        invite_url=req.invite_url,
-        token=req.token,
-    )
+    try:
+        from api.email_service import send_invite_email
 
-    if not success:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to send invite email",
+        success = send_invite_email(
+            to_email=req.to_email,
+            startup_name=req.startup_name,
+            inviter_email=req.inviter_email,
+            invite_url=req.invite_url,
+            token=req.token,
         )
 
-    return {"status": "success"}
+        if not success:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to send invite email",
+            )
 
+        return {
+            "status": "success"
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        print(f"Invite Error: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
+        )
+
+
+# ================================================================
+# SEND MEETING INVITES
+# ================================================================
 
 @app.post("/send-meeting-invites")
-async def send_meeting_invites_endpoint(req: MeetingInviteRequest):
-    from api.email_service import send_meeting_invites
+async def send_meeting_invites_endpoint(
+    req: MeetingInviteRequest
+):
 
-    success = send_meeting_invites(
-        attendees=req.attendees,
-        title=req.title,
-        date=req.date,
-        time=req.time,
-        link=req.link,
-        inviter_email=req.inviter_email,
-        inviter_name=req.inviter_name,
-        startup_name=req.startup_name,
-    )
+    try:
+        from api.email_service import send_meeting_invites
 
-    if not success:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to send meeting invites",
+        success = send_meeting_invites(
+            attendees=req.attendees,
+            title=req.title,
+            date=req.date,
+            time=req.time,
+            link=req.link,
+            inviter_email=req.inviter_email,
+            inviter_name=req.inviter_name,
+            startup_name=req.startup_name,
         )
 
-    return {"status": "success"}
+        if not success:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to send meeting invites",
+            )
+
+        return {
+            "status": "success"
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        print(f"Meeting Invite Error: {e}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
+        )
