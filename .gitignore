@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+backend 1/venv/
+venv/
+.venv/
+
+# Production builds
+frontend 1/dist/
+dist/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment variables (keep example/template if needed)
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+
+# Vite / React logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+backend 1/crop_key.png
