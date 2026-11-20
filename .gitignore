@@ -42,3 +42,12 @@ Thumbs.db
 *.sln
 *.sw?
 backend 1/crop_key.png
+__pycache__/
+*.py[cod]
+**/venv/
+**/.venv/
+**/node_modules/
+**/dist/
+.env
+.env.*
+!.env.example

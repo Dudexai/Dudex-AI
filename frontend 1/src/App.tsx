@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import HomeSelection from "./pages/HomeSelection";
 import JoinOrganization from "./pages/JoinOrganization";
 import StoryIntake from "./pages/StoryIntake";
+import MarketAnalysis from "./pages/MarketAnalysis";
 import Processing from "./pages/Processing";
 import Dashboard from "./pages/Dashboard";
 import { StartupDashboard } from "./pages/StartupDashboard";
@@ -25,6 +26,7 @@ import Meetings from "./pages/Meetings";
 
 import Vault from "./pages/Vault";
 import Community from "./pages/Community";
+import StartupsChat from "./pages/StartupsChat";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import WorkTask from "./pages/WorkTask";
@@ -142,10 +144,12 @@ const AppRoutes = () => {
       {/* Protected routes that require auth but NOT active startup */}
       <Route path="/join" element={<ProtectedRoute><JoinOrganization /></ProtectedRoute>} />
       <Route path="/story-intake" element={<ProtectedRoute><StoryIntake /></ProtectedRoute>} />
+      <Route path="/market-analysis" element={<ProtectedRoute><MarketAnalysis /></ProtectedRoute>} />
       <Route path="/processing" element={<ProtectedRoute><Processing /></ProtectedRoute>} />
 
       {/* Global Authenticated Pages (Decoupled from Startup) */}
       <Route path="/community" element={<ProtectedRoute><AuthenticatedLayout><Community /></AuthenticatedLayout></ProtectedRoute>} />
+      <Route path="/startups-chat" element={<ProtectedRoute><AuthenticatedLayout><StartupsChat /></AuthenticatedLayout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><AuthenticatedLayout><Profile /></AuthenticatedLayout></ProtectedRoute>} />
 
 

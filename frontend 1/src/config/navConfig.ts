@@ -9,6 +9,7 @@ import {
     MoreHorizontal,
     Settings,
     Users,
+    MessageSquare,
 } from "lucide-react";
 
 export interface NavItemConfig {
@@ -30,6 +31,7 @@ export const moreNavItems: NavItemConfig[] = [
     { icon: Calendar, label: "Calendar", path: "/calendar" },
     { icon: Shield, label: "Vault", path: "/vault" },
     { icon: Users2, label: "Community", path: "/community" },
+    { icon: MessageSquare, label: "Startups Chat", path: "/startups-chat" },
     { icon: Settings, label: "Settings", path: "/settings" },
 ];
 

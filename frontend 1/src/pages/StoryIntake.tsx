@@ -1,5 +1,5 @@
-﻿import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/TopBar";
 import { PageHeader } from "@/components/PageHeader";
@@ -26,6 +26,7 @@ const STORAGE_KEY_STARTUPS = "dudex_startups";
 
 const StoryIntake = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { refreshStartups, setActiveStartupId } = useStartup();
   const { setPlan } = usePlan();
@@ -39,6 +40,23 @@ const StoryIntake = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const [characterCount, setCharacterCount] = useState(0);
+
+  // If redirected back from Market Analysis with reset=true, clear all fields
+  useEffect(() => {
+    if (searchParams.get("reset") === "true") {
+      setStory("");
+      setStartupName("");
+      setPlanningDays(30);
+      setCustomDays("");
+      sessionStorage.removeItem("pendingVision");
+      toast({
+        title: "Fields Cleared",
+        description: "Ready for your next startup idea! Enter a new vision below.",
+      });
+      // Clean up URL query
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, toast]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -182,8 +200,8 @@ const StoryIntake = () => {
 
       sessionStorage.setItem("pendingVision", JSON.stringify(pendingVision));
 
-      // Navigate to processing page
-      navigate("/processing");
+      // Navigate to market feasibility and competitor analysis page first
+      navigate("/market-analysis");
 
     } catch (error: any) {
       console.error("Error initiating startup creation:", error);

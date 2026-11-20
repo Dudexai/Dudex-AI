@@ -7,9 +7,11 @@ from api.openrouter import (
     generate_startup_plan,
     generate_chat_response,
     generate_task_guide,
+    generate_market_feasibility_analysis,
 )
 from api.strategy_router import router as strategy_router
 from api.export_router import router as export_router
+from api.community_router import router as community_router
 from database import init_db
 from api.email_service import start_scheduler, stop_scheduler
 
@@ -45,6 +47,7 @@ def on_shutdown():
 
 app.include_router(strategy_router)
 app.include_router(export_router)
+app.include_router(community_router)
 
 
 # ================================================================
@@ -67,6 +70,12 @@ app.add_middleware(
 class GenerateRequest(BaseModel):
     idea: str
     days: int
+
+
+class MarketAnalysisRequest(BaseModel):
+    name: str = ""
+    idea: str
+    days: int = 30
 
 
 class ChatRequest(BaseModel):
@@ -151,6 +160,27 @@ async def generate_plan(req: GenerateRequest):
     except Exception as e:
         print(f"Plan Generation Error: {e}")
 
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
+        )
+
+
+# ================================================================
+# MARKET FEASIBILITY & COMPETITOR ANALYSIS
+# ================================================================
+
+@app.post("/analyze-market")
+async def analyze_market_endpoint(req: MarketAnalysisRequest):
+    try:
+        analysis = await generate_market_feasibility_analysis(
+            startup_name=req.name,
+            startup_idea=req.idea,
+            days=req.days,
+        )
+        return analysis
+    except Exception as e:
+        print(f"Market Analysis Error: {e}")
         raise HTTPException(
             status_code=500,
             detail=str(e),

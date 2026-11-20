@@ -122,5 +122,29 @@ def init_db():
     )
     ''')
 
+    # Startup Connections (Mutual connect model)
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS startup_connections (
+        id TEXT PRIMARY KEY,
+        requester_id TEXT,
+        receiver_id TEXT,
+        status TEXT DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+
+    # Startup Direct Chat Messages
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS startup_messages (
+        id TEXT PRIMARY KEY,
+        sender_startup_id TEXT,
+        receiver_startup_id TEXT,
+        sender_name TEXT,
+        message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+
     conn.commit()
     conn.close()
