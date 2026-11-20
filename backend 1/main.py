@@ -349,8 +349,11 @@ async def send_meeting_invites_endpoint(
 # ================================================================
 
 class MarketAnalysisRequest(BaseModel):
-    idea: str
-    startup_name: str = "My Startup"
+    idea: str = ""
+    vision: str = ""
+    name: str = ""
+    startup_name: str = ""
+    days: int = 30
     target_region: str = "Global & India"
 
 
@@ -371,9 +374,11 @@ async def analyze_market_endpoint(req: MarketAnalysisRequest):
     """Agent 1: Market & Competitor Intelligence (Google Search Grounding)"""
     try:
         from api.gemini_service import analyze_market
+        resolved_idea = req.idea or req.vision or "Tech startup solving operational bottlenecks"
+        resolved_name = req.name or req.startup_name or "My Startup"
         return await analyze_market(
-            idea=req.idea,
-            startup_name=req.startup_name,
+            idea=resolved_idea,
+            startup_name=resolved_name,
             target_region=req.target_region,
         )
     except Exception as e:

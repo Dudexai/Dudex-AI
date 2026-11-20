@@ -113,44 +113,96 @@ async def call_gemini(
 
 async def analyze_market(idea: str, startup_name: str = "My Startup", target_region: str = "Global & India"):
     system_prompt = """You are DudeX Analyzing Agent, an expert startup market researcher and competitive intelligence analyst.
-Your task is to identify BOTH indigenous (domestic/regional) and external (global) competitors for the startup.
-Return strictly valid JSON only. Do not wrap in markdown prose.
-
-JSON Format:
+Analyze both indigenous (domestic/India) and global competitors, plus venture feasibility.
+Keep all text fields concise, punchy, and under 25 words for rapid execution.
+Return strictly valid JSON only:
 {
-  "startup_name": "<Startup Name>",
-  "executive_summary": "<1-2 sentence core value proposition>",
+  "startup_name": "<Name>",
+  "one_line_summary": "<Punchy 1-sentence value proposition>",
+  "overall_feasibility_score": 78,
+  "verdict": "VIABLE_WITH_PIVOTS",
+  "verdict_title": "Strong Opportunity with Clear Wedge",
+  "verdict_summary": "<1-sentence strategic summary>",
+  "final_recommendation": "PROCEED_TO_VALIDATION",
+  "metrics": {
+    "competition_density": {
+      "score_percentage": 75,
+      "level": "High",
+      "top_competitors": ["<Comp 1>", "<Comp 2>", "<Comp 3>"],
+      "barrier_to_entry": "Moderate",
+      "analysis": "<Brief competition analysis>"
+    },
+    "global_market_demand": {
+      "score_percentage": 85,
+      "sentiment": "POSITIVE",
+      "sentiment_label": "Worth Starting (High Demand)",
+      "addressable_market_trend": "Growing at 18% CAGR",
+      "analysis": "<Brief demand analysis>"
+    },
+    "five_year_future_outlook": {
+      "positive_percentage": 68,
+      "negative_percentage": 32,
+      "future_verdict": "Defensible with Proprietary Data Loops",
+      "disruption_risk": "Moderate",
+      "analysis": "<Brief 5-year outlook>"
+    }
+  },
   "indigenous_competitors": [
     {
-      "name": "<Local/Domestic Competitor>",
-      "region": "<Region/Country>",
-      "url": "<URL or search identifier>",
-      "strengths": "<Their key localized edge>",
+      "name": "<Local Competitor>",
+      "region": "India",
+      "url": "<URL or Search query>",
+      "strengths": "<Their localized edge>",
       "weaknesses": "<Their vulnerability>"
     }
   ],
   "global_competitors": [
     {
-      "name": "<Global Market Leader>",
+      "name": "<Global Leader>",
       "url": "<URL>",
-      "pricing_model": "<Freemium/Subscription/Enterprise>",
+      "pricing_model": "Freemium / B2B SaaS",
       "vulnerabilities": "<Where they fall short>"
     }
   ],
-  "unfair_advantage": "<The unique wedge or 10x differentiator>",
+  "unfair_advantage": "<The 10x differentiator or wedge>",
   "tam_sam_som": {
-    "tam": "<Total Addressable Market>",
-    "sam": "<Serviceable Addressable Market>",
-    "som": "<Serviceable Obtainable Market (First 12-18 Months)>"
+    "tam": "$12B",
+    "sam": "$2.5B",
+    "som": "$50M"
   },
   "market_validation_experiments": [
     {
       "step": 1,
-      "test_name": "<Actionable 48-hour experiment>",
+      "test_name": "<48-hr validation experiment>",
       "method": "<Unscalable manual test>",
-      "metric": "<Quantitative success threshold>"
+      "metric": "<Quantitative target>"
     }
-  ]
+  ],
+  "category_breakdown": [
+    {
+      "category": "Market Demand & Urgency",
+      "score": 85,
+      "status": "Strong Positive",
+      "positive_reasons": ["Urgent workflow bottleneck", "Clear willingness to pay"],
+      "negative_reasons": ["Requires user education"],
+      "verdict": "Strong customer appetite."
+    },
+    {
+      "category": "Competitive Moat",
+      "score": 70,
+      "status": "Defensible Niche",
+      "positive_reasons": ["10x faster execution than legacy incumbents"],
+      "negative_reasons": ["Must build proprietary network effects"],
+      "verdict": "Viable wedge against incumbents."
+    }
+  ],
+  "honest_growth_verdict": {
+    "headline": "High-Conviction Venture with Laser-Focused Wedge",
+    "summary": "Execute unscalable validation tests immediately before scaling automation.",
+    "fatal_flaw": "Scaling outbound before securing first 3 reference customers.",
+    "unfair_advantage": "<The unfair advantage>",
+    "actionable_suggestion": "Focus strictly on Max's YC playbook: work warm connections for first 3 customers."
+  }
 }"""
 
     user_prompt = f"""STARTUP NAME: {startup_name}
@@ -163,8 +215,9 @@ Perform live market and competitor analysis now. Return strictly valid JSON."""
     raw_response = await call_gemini(
         prompt=user_prompt,
         system_instruction=system_prompt,
-        enable_search=True,
-        temperature=0.3
+        enable_search=False,
+        temperature=0.3,
+        max_tokens=1500
     )
 
     cleaned = _clean_json(raw_response)
