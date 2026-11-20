@@ -8,7 +8,7 @@ import {
   PieChart, Pie, Cell, LineChart, Line, Legend
 } from "recharts";
 import {
-  TrendingUp, CheckCircle2, Clock, AlertCircle, Target, Copy, Flame, ArrowRight, List, Trophy
+  TrendingUp, CheckCircle2, Clock, AlertCircle, Target, Copy, Flame, ArrowRight, List, Trophy, Bot, Sparkles, Zap
 } from "lucide-react";
 import { useStartup } from "@/hooks/useStartup";
 import { useToast } from "@/hooks/use-toast";
@@ -100,6 +100,51 @@ const Dashboard = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* AUTONOMOUS AI AGENTS SUITE BANNER */}
+        <div className="mb-8 animate-fade-in-up">
+          <Card className="border-primary/30 bg-gradient-to-r from-primary/10 via-card to-card shadow-elevated relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+              <Bot className="h-40 w-40" />
+            </div>
+            <CardContent className="p-6 md:p-8 flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between relative z-10">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-primary uppercase bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
+                    <Sparkles className="h-3.5 w-3.5 animate-pulse" /> Autonomous Multi-Agent OS
+                  </span>
+                  <span className="text-xs text-muted-foreground font-mono">Gemini 3 Flash + Fallback</span>
+                </div>
+                <h2 className="text-2xl font-display font-bold leading-tight">
+                  Your AI Co-Founder Suite is Active
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Trigger 3 autonomous agents for <strong>{activeStartup.name}</strong>: 
+                  instant competitor reconnaissance (TAM/SAM/SOM), YC outbound sales playbooks with direct Slack dispatch, and zero-latency video interview links.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-background/80 border text-foreground flex items-center gap-1.5">
+                    🔍 Agent 1: Analyzing & Moats
+                  </span>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-background/80 border text-foreground flex items-center gap-1.5">
+                    🚀 Agent 2: YC Sales & Slack Loop
+                  </span>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-background/80 border text-foreground flex items-center gap-1.5">
+                    ⚡ Agent 3: Instant Jitsi & Social Ops
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                size="xl"
+                className="shrink-0 shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                onClick={() => navigate("/agents")}
+              >
+                <Bot className="mr-2 h-5 w-5" /> Launch AI Agents Command Center <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* TODAY'S FOCUS WIDGET */}

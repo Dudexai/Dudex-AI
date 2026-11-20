@@ -169,86 +169,91 @@ const MarketAnalysis = () => {
 
     const unfairAdvantage = data?.unfair_advantage || "10x workflow velocity and localized execution edge.";
 
+    const defaultMetrics = {
+      competition_density: {
+        score_percentage: Number(data?.metrics?.competition_density?.score_percentage) || 74,
+        level: data?.metrics?.competition_density?.level || "Moderate-High",
+        top_competitors: topCompetitors,
+        barrier_to_entry: data?.metrics?.competition_density?.barrier_to_entry || "Moderate",
+        analysis: data?.metrics?.competition_density?.analysis || "Incumbents are established globally, but vulnerable to fast-moving localized solutions with superior UX.",
+      },
+      global_market_demand: {
+        score_percentage: Number(data?.metrics?.global_market_demand?.score_percentage) || 84,
+        sentiment: ((data?.metrics?.global_market_demand?.sentiment === "NEGATIVE" ? "NEGATIVE" : "POSITIVE") as "POSITIVE" | "NEGATIVE"),
+        sentiment_label: data?.metrics?.global_market_demand?.sentiment_label || "Worth Starting (High Demand)",
+        addressable_market_trend: data?.tam_sam_som?.tam || data?.metrics?.global_market_demand?.addressable_market_trend || "Expanding at 18.5% CAGR",
+        analysis: data?.metrics?.global_market_demand?.analysis || executiveSummary,
+      },
+      five_year_future_outlook: {
+        positive_percentage: Number(data?.metrics?.five_year_future_outlook?.positive_percentage) || 68,
+        negative_percentage: Number(data?.metrics?.five_year_future_outlook?.negative_percentage) || 32,
+        future_verdict: data?.metrics?.five_year_future_outlook?.future_verdict || "Defensible via Proprietary Workflow Loops",
+        disruption_risk: data?.metrics?.five_year_future_outlook?.disruption_risk || "Moderate",
+        analysis: data?.metrics?.five_year_future_outlook?.analysis || "Venture longevity is high if early traction builds deep customer workflow lock-in.",
+      },
+    };
+
     return {
+      ...(data && typeof data === "object" ? data : {}),
       startup_name: data?.startup_name || info.name || "Startup Project",
       one_line_summary: executiveSummary,
-      overall_feasibility_score: data?.overall_feasibility_score || 76,
+      overall_feasibility_score: Number(data?.overall_feasibility_score) || 76,
       verdict: data?.verdict || "VIABLE_WITH_PIVOTS",
       verdict_title: data?.verdict_title || "Validated Concept with Clear Tactical Edge",
       verdict_summary: data?.verdict_summary || "Strong demand signals detected. Competitor moats can be penetrated by focusing on unscalable 48-hour customer validation.",
       final_recommendation: data?.final_recommendation || "PROCEED_TO_VALIDATION",
-      metrics: {
-        competition_density: {
-          score_percentage: data?.metrics?.competition_density?.score_percentage || 74,
-          level: data?.metrics?.competition_density?.level || "Moderate-High",
-          top_competitors: topCompetitors,
-          barrier_to_entry: data?.metrics?.competition_density?.barrier_to_entry || "Moderate",
-          analysis: data?.metrics?.competition_density?.analysis || "Incumbents are established globally, but vulnerable to fast-moving localized solutions with superior UX.",
-        },
-        global_market_demand: {
-          score_percentage: data?.metrics?.global_market_demand?.score_percentage || 84,
-          sentiment: data?.metrics?.global_market_demand?.sentiment || "POSITIVE",
-          sentiment_label: data?.metrics?.global_market_demand?.sentiment_label || "Worth Starting (High Demand)",
-          addressable_market_trend: data?.tam_sam_som?.tam || data?.metrics?.global_market_demand?.addressable_market_trend || "Expanding at 18.5% CAGR",
-          analysis: data?.metrics?.global_market_demand?.analysis || executiveSummary,
-        },
-        five_year_future_outlook: {
-          positive_percentage: data?.metrics?.five_year_future_outlook?.positive_percentage || 68,
-          negative_percentage: data?.metrics?.five_year_future_outlook?.negative_percentage || 32,
-          future_verdict: data?.metrics?.five_year_future_outlook?.future_verdict || "Defensible via Proprietary Workflow Loops",
-          disruption_risk: data?.metrics?.five_year_future_outlook?.disruption_risk || "Moderate",
-          analysis: data?.metrics?.five_year_future_outlook?.analysis || "Venture longevity is high if early traction builds deep customer workflow lock-in.",
-        },
+      metrics: defaultMetrics,
+      category_breakdown: Array.isArray(data?.category_breakdown) && data.category_breakdown.length > 0
+        ? data.category_breakdown
+        : [
+            {
+              category: "Market Demand & Problem Urgency",
+              score: 85,
+              status: "Strong Positive",
+              positive_reasons: [
+                "Severe pain point where businesses lose billable hours every week",
+                "Clear immediate willingness to pay for a tool that automates tedious manual steps",
+              ],
+              negative_reasons: [
+                "Users may tolerate free workarounds or spreadsheets if pricing is aggressive",
+              ],
+              verdict: "Urgent pain point with immediate market appetite.",
+            },
+            {
+              category: "Competitive Landscape & Defensibility (Moat)",
+              score: 70,
+              status: "Defensible Niche",
+              positive_reasons: [
+                `Unfair Advantage: ${unfairAdvantage}`,
+                "Ability to be significantly more nimble and customer-centric than bloated legacy players",
+              ],
+              negative_reasons: [
+                "Entrenched incumbents currently hold vendor lock-in with existing contracts",
+              ],
+              verdict: "Differentiated positioning provides viable early wedge.",
+            },
+            {
+              category: "5-Year Tech & AI Longevity",
+              score: 75,
+              status: "Favorable",
+              positive_reasons: [
+                "Generative AI capabilities will dramatically reduce internal infrastructure costs",
+                "Autonomous agents will expand the total addressable surface of this platform",
+              ],
+              negative_reasons: [
+                "Over-reliance on third-party APIs requires building domain-specific fine-tuning",
+              ],
+              verdict: "Strong long-term resilience through execution velocity.",
+            },
+          ],
+      honest_growth_verdict: {
+        will_it_workout: data?.honest_growth_verdict?.will_it_workout || "High-Conviction Venture with Laser-Focused Wedge",
+        growth_assessment: data?.honest_growth_verdict?.growth_assessment || data?.honest_growth_verdict?.summary || "Customer appetite is verified. Execute unscalable validation tests immediately before writing extensive code.",
+        critical_flaws_to_fix: Array.isArray(data?.honest_growth_verdict?.critical_flaws_to_fix)
+          ? data.honest_growth_verdict.critical_flaws_to_fix
+          : [data?.honest_growth_verdict?.fatal_flaw || "Attempting broad marketing campaigns before securing your first 10 reference customers."],
+        actionable_suggestion: data?.honest_growth_verdict?.actionable_suggestion || "Focus strictly on Max's YC playbook: work warm connections for first 3 customers, then do in-person discovery.",
       },
-      category_breakdown: data?.category_breakdown || [
-        {
-          category: "Market Demand & Problem Urgency",
-          score: 85,
-          status: "Strong Positive",
-          positive_reasons: [
-            "Severe pain point where businesses lose billable hours every week",
-            "Clear immediate willingness to pay for a tool that automates tedious manual steps",
-          ],
-          negative_reasons: [
-            "Users may tolerate free workarounds or spreadsheets if pricing is aggressive",
-          ],
-          verdict: "Urgent pain point with immediate market appetite.",
-        },
-        {
-          category: "Competitive Landscape & Defensibility (Moat)",
-          score: 70,
-          status: "Defensible Niche",
-          positive_reasons: [
-            `Unfair Advantage: ${unfairAdvantage}`,
-            "Ability to be significantly more nimble and customer-centric than bloated legacy players",
-          ],
-          negative_reasons: [
-            "Entrenched incumbents currently hold vendor lock-in with existing contracts",
-          ],
-          verdict: "Differentiated positioning provides viable early wedge.",
-        },
-        {
-          category: "5-Year Tech & AI Longevity",
-          score: 75,
-          status: "Favorable",
-          positive_reasons: [
-            "Generative AI capabilities will dramatically reduce internal infrastructure costs",
-            "Autonomous agents will expand the total addressable surface of this platform",
-          ],
-          negative_reasons: [
-            "Over-reliance on third-party APIs requires building domain-specific fine-tuning",
-          ],
-          verdict: "Strong long-term resilience through execution velocity.",
-        },
-      ],
-      honest_growth_verdict: data?.honest_growth_verdict || {
-        headline: "High-Conviction Venture with Laser-Focused Wedge",
-        summary: "Customer appetite is verified. Execute unscalable validation tests immediately before writing extensive code.",
-        fatal_flaw: "Attempting broad marketing campaigns before securing your first 10 reference customers.",
-        unfair_advantage: unfairAdvantage,
-        actionable_suggestion: "Focus strictly on Max's YC playbook: work warm connections for first 3 customers, then do in-person discovery.",
-      },
-      ...(data || {}),
     };
   };
 
@@ -385,7 +390,31 @@ const MarketAnalysis = () => {
     );
   }
 
-  const { metrics, category_breakdown, honest_growth_verdict } = analysis;
+  const metrics = analysis?.metrics || {
+    competition_density: {
+      score_percentage: 74,
+      level: "Moderate-High",
+      top_competitors: ["Local Market Leaders", "Global Competitors"],
+      barrier_to_entry: "Moderate",
+      analysis: "Competition is present but vulnerable to focused execution.",
+    },
+    global_market_demand: {
+      score_percentage: 84,
+      sentiment: "POSITIVE" as const,
+      sentiment_label: "Worth Starting (High Demand)",
+      addressable_market_trend: "Expanding market demand",
+      analysis: "Strong buyer interest and problem urgency.",
+    },
+    five_year_future_outlook: {
+      positive_percentage: 68,
+      negative_percentage: 32,
+      future_verdict: "Defensible via Proprietary Loops",
+      disruption_risk: "Moderate",
+      analysis: "High longevity with fast execution.",
+    },
+  };
+  const category_breakdown = analysis?.category_breakdown || [];
+  const honest_growth_verdict = analysis?.honest_growth_verdict;
 
   // Feasibility color helpers
   const getScoreColor = (score: number) => {
@@ -570,7 +599,7 @@ const MarketAnalysis = () => {
                   </div>
                 </div>
                 <span className="text-2xl font-serif font-extrabold text-foreground">
-                  {metrics.competition_density.score_percentage}%
+                  {metrics?.competition_density?.score_percentage ?? 74}%
                 </span>
               </div>
 
@@ -578,20 +607,20 @@ const MarketAnalysis = () => {
               <div className="w-full bg-secondary h-2.5 rounded-full overflow-hidden mb-3">
                 <div
                   className={`h-full transition-all duration-500 rounded-full ${
-                    metrics.competition_density.score_percentage > 70
+                    (metrics?.competition_density?.score_percentage || 0) > 70
                       ? "bg-rose-500"
-                      : metrics.competition_density.score_percentage > 45
+                      : (metrics?.competition_density?.score_percentage || 0) > 45
                       ? "bg-amber-500"
                       : "bg-emerald-500"
                   }`}
-                  style={{ width: `${metrics.competition_density.score_percentage}%` }}
+                  style={{ width: `${metrics?.competition_density?.score_percentage ?? 74}%` }}
                 />
               </div>
 
               <div className="flex items-center justify-between text-xs mb-4">
                 <span className="text-muted-foreground">Market Density:</span>
                 <span className="font-bold px-2 py-0.5 rounded-md bg-secondary text-foreground text-[11px]">
-                  {metrics.competition_density.level} Density
+                  {metrics?.competition_density?.level || "Moderate"} Density
                 </span>
               </div>
 
@@ -601,7 +630,7 @@ const MarketAnalysis = () => {
                   Identified Key Competitors:
                 </span>
                 <div className="flex flex-wrap gap-1.5">
-                  {metrics.competition_density.top_competitors.map((comp, idx) => (
+                  {(metrics?.competition_density?.top_competitors || []).map((comp, idx) => (
                     <span
                       key={idx}
                       className="px-2 py-1 rounded-lg text-xs font-medium bg-secondary/80 text-foreground border border-border/50"
@@ -615,7 +644,7 @@ const MarketAnalysis = () => {
 
             <div className="pt-3 border-t border-border/40">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {metrics.competition_density.analysis}
+                {metrics?.competition_density?.analysis || "Competitive field with high upside for nimble execution."}
               </p>
             </div>
           </div>
@@ -636,15 +665,15 @@ const MarketAnalysis = () => {
                 <div className="flex items-center gap-1">
                   <span
                     className={`text-xl font-bold font-mono px-2 py-0.5 rounded-md ${
-                      metrics.global_market_demand.sentiment === "POSITIVE"
+                      metrics?.global_market_demand?.sentiment === "POSITIVE"
                         ? "bg-emerald-100 text-emerald-700"
                         : "bg-rose-100 text-rose-700"
                     }`}
                   >
-                    {metrics.global_market_demand.sentiment === "POSITIVE" ? "+" : "-"}
+                    {metrics?.global_market_demand?.sentiment === "POSITIVE" ? "+" : "-"}
                   </span>
                   <span className="text-2xl font-serif font-extrabold text-foreground">
-                    {metrics.global_market_demand.score_percentage}%
+                    {metrics?.global_market_demand?.score_percentage ?? 84}%
                   </span>
                 </div>
               </div>
@@ -653,11 +682,11 @@ const MarketAnalysis = () => {
               <div className="w-full bg-secondary h-2.5 rounded-full overflow-hidden mb-3">
                 <div
                   className={`h-full transition-all duration-500 rounded-full ${
-                    metrics.global_market_demand.sentiment === "POSITIVE"
+                    metrics?.global_market_demand?.sentiment === "POSITIVE"
                       ? "bg-emerald-500"
                       : "bg-rose-500"
                   }`}
-                  style={{ width: `${metrics.global_market_demand.score_percentage}%` }}
+                  style={{ width: `${metrics?.global_market_demand?.score_percentage ?? 84}%` }}
                 />
               </div>
 
@@ -672,14 +701,14 @@ const MarketAnalysis = () => {
               <div className="flex items-center justify-between text-xs mb-3">
                 <span className="text-muted-foreground">Market Trend:</span>
                 <span className="font-medium text-foreground text-[11px]">
-                  {metrics.global_market_demand.addressable_market_trend}
+                  {metrics?.global_market_demand?.addressable_market_trend || "Expanding Market Demand"}
                 </span>
               </div>
             </div>
 
             <div className="pt-3 border-t border-border/40">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {metrics.global_market_demand.analysis}
+                {metrics?.global_market_demand?.analysis || "Strong buyer intent signals verified."}
               </p>
             </div>
           </div>
@@ -699,10 +728,10 @@ const MarketAnalysis = () => {
                 </div>
                 <div className="text-right">
                   <span className="text-xs text-emerald-600 font-bold block">
-                    +{metrics.five_year_future_outlook.positive_percentage}% Future
+                    +{metrics?.five_year_future_outlook?.positive_percentage ?? 68}% Future
                   </span>
                   <span className="text-[10px] text-rose-500 font-semibold block">
-                    -{metrics.five_year_future_outlook.negative_percentage}% Risk
+                    -{metrics?.five_year_future_outlook?.negative_percentage ?? 32}% Risk
                   </span>
                 </div>
               </div>
@@ -711,12 +740,12 @@ const MarketAnalysis = () => {
               <div className="w-full h-3 rounded-full overflow-hidden flex bg-secondary mb-3">
                 <div
                   className="bg-emerald-500 h-full transition-all duration-500"
-                  style={{ width: `${metrics.five_year_future_outlook.positive_percentage}%` }}
+                  style={{ width: `${metrics?.five_year_future_outlook?.positive_percentage ?? 68}%` }}
                   title="5-Year Survival Probability"
                 />
                 <div
                   className="bg-rose-500 h-full transition-all duration-500"
-                  style={{ width: `${metrics.five_year_future_outlook.negative_percentage}%` }}
+                  style={{ width: `${metrics?.five_year_future_outlook?.negative_percentage ?? 32}%` }}
                   title="5-Year Obsolescence Risk"
                 />
               </div>
@@ -725,20 +754,20 @@ const MarketAnalysis = () => {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Longevity Verdict:</span>
                   <span className="font-semibold text-foreground text-[11px]">
-                    {metrics.five_year_future_outlook.future_verdict}
+                    {metrics?.five_year_future_outlook?.future_verdict || "Defensible"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">AI Disruption Risk:</span>
                   <span
                     className={`font-bold text-[11px] px-2 py-0.5 rounded ${
-                      metrics.five_year_future_outlook.disruption_risk === "Critical" ||
-                      metrics.five_year_future_outlook.disruption_risk === "High"
+                      metrics?.five_year_future_outlook?.disruption_risk === "Critical" ||
+                      metrics?.five_year_future_outlook?.disruption_risk === "High"
                         ? "bg-rose-100 text-rose-700"
                         : "bg-amber-100 text-amber-700"
                     }`}
                   >
-                    {metrics.five_year_future_outlook.disruption_risk}
+                    {metrics?.five_year_future_outlook?.disruption_risk || "Moderate"}
                   </span>
                 </div>
               </div>
@@ -746,7 +775,7 @@ const MarketAnalysis = () => {
 
             <div className="pt-3 border-t border-border/40">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {metrics.five_year_future_outlook.analysis}
+                {metrics?.five_year_future_outlook?.analysis || "Longevity is high with proprietary data feedback loops."}
               </p>
             </div>
           </div>

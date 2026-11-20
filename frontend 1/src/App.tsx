@@ -18,6 +18,7 @@ import StoryIntake from "./pages/StoryIntake";
 import MarketAnalysis from "./pages/MarketAnalysis";
 import Processing from "./pages/Processing";
 import Dashboard from "./pages/Dashboard";
+import { Agents } from "./pages/Agents";
 import { StartupDashboard } from "./pages/StartupDashboard";
 import Plans from "./pages/Plans";
 import TaskDetail from "./pages/TaskDetailsPage";
@@ -155,6 +156,7 @@ const AppRoutes = () => {
 
       {/* Protected routes that require auth AND active startup - Wrapped in NavLayout */}
       <Route path="/dashboard" element={<StartupRoute><AuthenticatedLayout><Dashboard /></AuthenticatedLayout></StartupRoute>} />
+      <Route path="/agents" element={<StartupRoute><AuthenticatedLayout><Agents /></AuthenticatedLayout></StartupRoute>} />
       <Route path="/plans" element={<StartupRoute><AuthenticatedLayout><Plans /></AuthenticatedLayout></StartupRoute>} />
       <Route path="/dashboard/:planId" element={<StartupRoute><AuthenticatedLayout><StartupDashboard /></AuthenticatedLayout></StartupRoute>} />
       {/* Deprecated /plans/:taskId - Use /work/... instead */}

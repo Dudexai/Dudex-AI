@@ -72,12 +72,6 @@ class GenerateRequest(BaseModel):
     days: int
 
 
-class MarketAnalysisRequest(BaseModel):
-    name: str = ""
-    idea: str
-    days: int = 30
-
-
 class ChatRequest(BaseModel):
     context: str
     message: str
@@ -160,27 +154,6 @@ async def generate_plan(req: GenerateRequest):
     except Exception as e:
         print(f"Plan Generation Error: {e}")
 
-        raise HTTPException(
-            status_code=500,
-            detail=str(e),
-        )
-
-
-# ================================================================
-# MARKET FEASIBILITY & COMPETITOR ANALYSIS
-# ================================================================
-
-@app.post("/analyze-market")
-async def analyze_market_endpoint(req: MarketAnalysisRequest):
-    try:
-        analysis = await generate_market_feasibility_analysis(
-            startup_name=req.name,
-            startup_idea=req.idea,
-            days=req.days,
-        )
-        return analysis
-    except Exception as e:
-        print(f"Market Analysis Error: {e}")
         raise HTTPException(
             status_code=500,
             detail=str(e),

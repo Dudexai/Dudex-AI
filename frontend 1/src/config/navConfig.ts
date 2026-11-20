@@ -1,5 +1,6 @@
 import {
     Home,
+    Bot,
     ListTodo,
     Video,
     Calendar,
@@ -21,6 +22,7 @@ export interface NavItemConfig {
 /** Primary items shown directly in the mobile bottom bar */
 export const primaryNavItems: NavItemConfig[] = [
     { icon: Home, label: "Dashboard", path: "/dashboard" },
+    { icon: Bot, label: "AI Agents", path: "/agents" },
     { icon: ListTodo, label: "Plans", path: "/plans" },
     { icon: Video, label: "Meetings", path: "/meetings" },
 ];
