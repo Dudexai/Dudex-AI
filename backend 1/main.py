@@ -312,3 +312,71 @@ async def send_meeting_invites_endpoint(
             status_code=500,
             detail=str(e),
         )
+
+
+# ================================================================
+# MULTI-AGENT ENDPOINTS (POWERED BY GEMINI DUAL-ENGINE)
+# ================================================================
+
+class MarketAnalysisRequest(BaseModel):
+    idea: str
+    startup_name: str = "My Startup"
+    target_region: str = "Global & India"
+
+
+class MarketingPlanRequest(BaseModel):
+    startup_name: str
+    vision: str
+    current_phase: str = "Validation"
+    target_icp: str = ""
+
+
+class OperationsActionRequest(BaseModel):
+    action_type: str = "social_copy"
+    context_data: dict = {}
+
+
+@app.post("/analyze-market")
+async def analyze_market_endpoint(req: MarketAnalysisRequest):
+    """Agent 1: Market & Competitor Intelligence (Google Search Grounding)"""
+    try:
+        from api.gemini_service import analyze_market
+        return await analyze_market(
+            idea=req.idea,
+            startup_name=req.startup_name,
+            target_region=req.target_region,
+        )
+    except Exception as e:
+        print(f"Market Analysis Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/marketing-strategy")
+async def marketing_strategy_endpoint(req: MarketingPlanRequest):
+    """Agent 2: Growth & Outbound Engine (YC Sales, HubSpot GTM, ICE Testing)"""
+    try:
+        from api.gemini_service import generate_marketing_plan
+        return await generate_marketing_plan(
+            startup_name=req.startup_name,
+            vision=req.vision,
+            current_phase=req.current_phase,
+            target_icp=req.target_icp,
+        )
+    except Exception as e:
+        print(f"Marketing Strategy Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/operations-action")
+async def operations_action_endpoint(req: OperationsActionRequest):
+    """Agent 3: Operations & Communications (Emails, Meetings, Social Copy)"""
+    try:
+        from api.gemini_service import generate_operational_action
+        return await generate_operational_action(
+            action_type=req.action_type,
+            context_data=req.context_data,
+        )
+    except Exception as e:
+        print(f"Operations Action Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
