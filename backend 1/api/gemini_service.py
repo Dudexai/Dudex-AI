@@ -7,6 +7,17 @@ from api.openrouter import call_openrouter, _clean_json
 load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
+_http_client: httpx.AsyncClient | None = None
+
+def get_http_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(
+            timeout=httpx.Timeout(18.0, connect=5.0),
+            limits=httpx.Limits(max_keepalive_connections=25, max_connections=50)
+        )
+    return _http_client
+
 
 def get_gemini_config():
     """Dynamically re-reads environment config so changes in .env apply immediately."""
