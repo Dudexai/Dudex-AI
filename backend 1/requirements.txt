@@ -1,4 +1,4 @@
-﻿annotated-doc==0.0.4
+annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.12.1
 APScheduler==3.11.2
@@ -126,3 +126,6 @@ yarg==0.1.9
 yarl==1.22.0
 zstandard==0.25.0
 google-genai>=0.1.1
+json-repair>=0.30.0
+slack-sdk>=3.33.0
+

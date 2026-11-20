@@ -7,9 +7,22 @@ from api.openrouter import call_openrouter, _clean_json
 load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+
+def get_gemini_config():
+    """Dynamically re-reads environment config so changes in .env apply immediately."""
+    load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"), override=True)
+    api_key = os.getenv("GEMINI_API_KEY")
+    model = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+    return api_key, model
+
+
+async def _fallback_to_openrouter(prompt: str, system_instruction: str, max_tokens: int, temperature: float) -> str:
+    """Seamlessly falls back to OpenRouter to ensure zero customer wait time."""
+    fallback_messages = []
+    if system_instruction:
+        fallback_messages.append({"role": "system", "content": system_instruction})
+    fallback_messages.append({"role": "user", "content": prompt})
+    return await call_openrouter(fallback_messages, max_tokens=max_tokens, temperature=temperature)
 
 
 async def call_gemini(
@@ -22,17 +35,16 @@ async def call_gemini(
     """
     Executes a prompt against Google Gemini models.
     Supports Google Search Grounding for live competitor discovery.
-    Falls back seamlessly to OpenRouter if Gemini API key is missing or fails.
+    Falls back seamlessly and rapidly to OpenRouter if Gemini API key is missing,
+    rate-limited (429), unavailable (503), or times out, ensuring customers never wait.
     """
-    if not GEMINI_API_KEY:
-        print("NOTICE: GEMINI_API_KEY not found. Routing to OpenRouter fallback engine.")
-        fallback_messages = []
-        if system_instruction:
-            fallback_messages.append({"role": "system", "content": system_instruction})
-        fallback_messages.append({"role": "user", "content": prompt})
-        return await call_openrouter(fallback_messages, max_tokens=max_tokens, temperature=temperature)
+    api_key, model = get_gemini_config()
 
-    url = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
+    if not api_key:
+        print("NOTICE: GEMINI_API_KEY not found. Routing immediately to OpenRouter.")
+        return await _fallback_to_openrouter(prompt, system_instruction, max_tokens, temperature)
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     
     parts = []
     if system_instruction:
@@ -52,11 +64,29 @@ async def call_gemini(
         }
     }
 
+    # If search grounding is requested, attempt it first; if rate-limited (429) or unsupported, fall back to standard Gemini immediately
     if enable_search:
         payload["tools"] = [{"google_search": {}}]
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            if response.status_code == 200:
+                data = response.json()
+                candidates = data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if parts and "text" in parts[0]:
+                        return parts[0]["text"]
+            # 429 quota or other issue: drop tools and proceed immediately
+            print(f"NOTICE: Search grounding returned status {response.status_code}. Retrying instantly with fast direct Gemini...")
+            payload.pop("tools", None)
+        except Exception as search_err:
+            print(f"NOTICE: Search grounding skipped ({search_err}). Proceeding with direct Gemini...")
+            payload.pop("tools", None)
 
+    # Direct Gemini generation (blazing fast ~5-8s)
     try:
-        async with httpx.AsyncClient(timeout=45.0) as client:
+        async with httpx.AsyncClient(timeout=18.0) as client:
             response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
 
         if response.status_code == 200:
@@ -67,19 +97,14 @@ async def call_gemini(
                 parts = content.get("parts", [])
                 if parts and "text" in parts[0]:
                     return parts[0]["text"]
-            
             raise Exception("Gemini returned response without valid text candidate.")
 
-        print(f"DEBUG: Gemini API returned status {response.status_code}: {response.text}")
+        print(f"DEBUG: Gemini API returned status {response.status_code}: {response.text[:200]}")
         raise Exception(f"Gemini API Error {response.status_code}")
 
     except Exception as e:
-        print(f"WARNING: Gemini call failed ({e}). Falling back to OpenRouter.")
-        fallback_messages = []
-        if system_instruction:
-            fallback_messages.append({"role": "system", "content": system_instruction})
-        fallback_messages.append({"role": "user", "content": prompt})
-        return await call_openrouter(fallback_messages, max_tokens=max_tokens, temperature=temperature)
+        print(f"FAST FALLBACK: Gemini unavailable or timed out ({e}). Seamlessly switching to OpenRouter so customer does not wait.")
+        return await _fallback_to_openrouter(prompt, system_instruction, max_tokens, temperature)
 
 
 # =====================================================================
