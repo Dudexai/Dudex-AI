@@ -73,8 +73,13 @@ class GenerateRequest(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    context: str
+    context: str = ""
     message: str
+    startup_name: str = ""
+    startup_vision: str = ""
+    startup_phase: str = ""
+    startup_id: str = ""
+    history: list[dict] = []
 
 
 class GuideRequest(BaseModel):
@@ -167,9 +172,14 @@ async def generate_plan(req: GenerateRequest):
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
     try:
-        response = await generate_chat_response(
-            context=req.context,
+        from api.gemini_service import generate_advisor_chat_response
+        response = await generate_advisor_chat_response(
             message=req.message,
+            context=req.context,
+            startup_name=req.startup_name,
+            startup_vision=req.startup_vision,
+            startup_phase=req.startup_phase,
+            history=req.history,
         )
 
         return {
@@ -177,12 +187,19 @@ async def chat_endpoint(req: ChatRequest):
         }
 
     except Exception as e:
-        print(f"Chat Error: {e}")
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(e),
-        )
+        print(f"Advisor Chat Error: {e}")
+        try:
+            from api.openrouter import generate_chat_response
+            legacy_resp = await generate_chat_response(
+                context=req.context,
+                message=req.message,
+            )
+            return {"response": legacy_resp}
+        except Exception:
+            raise HTTPException(
+                status_code=500,
+                detail=str(e),
+            )
 
 
 # ================================================================

@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { usePlan } from "@/context/PlanContext";
+import { useStartup } from "@/hooks/useStartup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageCircle, X, Send, Bot } from "lucide-react";
+import { MessageCircle, X, Send, Bot, Sparkles, ShieldCheck, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Message {
@@ -169,14 +170,34 @@ const RobotEye = ({ className = "" }: { className?: string }) => {
 
 export function ChatWidget() {
     const [isOpen, setIsOpen] = useState(false);
+    const { activeStartup } = useStartup();
+    const { plan } = usePlan();
+
     const [messages, setMessages] = useState<Message[]>([
-        { role: "ai", text: "Hi! I'm **Dude**." },
-        { role: "ai", text: "I'm your startup mentor. Ask me anything about your plan!" }
+        { role: "ai", text: "Hi! I'm **Dude**, your Executive AI Startup Advisor & Co-Founder." },
+        { role: "ai", text: "I specialize exclusively in venture guidance, customer validation, moats, and execution. Ask me anything about your startup!" }
     ]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const { plan } = usePlan();
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Update greeting when active startup loads
+    useEffect(() => {
+        if (activeStartup?.name) {
+            setMessages([
+                { role: "ai", text: `Hi! I'm **Dude**, your Executive Startup Advisor.` },
+                { role: "ai", text: `I am specialized in **${activeStartup.name}**. I can analyze your value proposition, customer acquisition loops, unit economics, or current sprint. Ask me anything!` }
+            ]);
+        }
+    }, [activeStartup?.name]);
+
+    // Quick suggestion prompts
+    const quickPrompts = [
+        "Critique our core value proposition",
+        "How do we get our first 5 reference customers?",
+        "What unscalable 48-hr validation test should we run?",
+        "Review our pricing & unit economics",
+    ];
 
     // Auto-scroll to bottom of chat
     useEffect(() => {
@@ -185,17 +206,20 @@ export function ChatWidget() {
         }
     }, [messages, isOpen]);
 
-    const handleSend = async () => {
-        if (!input.trim()) return;
+    const handleSend = async (overrideMsg?: string) => {
+        const userMsg = overrideMsg || input;
+        if (!userMsg.trim()) return;
 
-        const userMsg = input;
-        setInput("");
+        if (!overrideMsg) setInput("");
         setMessages((prev) => [...prev, { role: "user", text: userMsg }]);
         setIsLoading(true);
 
         try {
-            // Build context from the current plan
-            let context = "No specific plan loaded yet.";
+            // Build isolated context strictly for the user's active startup
+            let context = "";
+            if (activeStartup) {
+                context += `Startup: ${activeStartup.name}\nVision: ${activeStartup.vision || "Not specified"}\n`;
+            }
             if (plan) {
                 const allTasks = plan.phases.flatMap(p =>
                     p.days.flatMap(d =>
@@ -203,7 +227,7 @@ export function ChatWidget() {
                     )
                 );
 
-                context = `
+                context += `
 Plan Title: ${plan.title}
 Summary: ${plan.summary}
 Current Progress: ${plan.overallProgress}%
@@ -220,13 +244,20 @@ ${allTasks.slice(0, 15).join("\n")}${allTasks.length > 15 ? "\n...and more." : "
         `.trim();
             }
 
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
+
             // Attempt to fetch from backend
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/chat`, {
+            const response = await fetch(`${backendUrl}/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    context: context,
                     message: userMsg,
+                    context: context || "Early stage startup exploration",
+                    startup_name: activeStartup?.name || "",
+                    startup_vision: activeStartup?.vision || "",
+                    startup_phase: (activeStartup as any)?.current_phase || "Validation",
+                    startup_id: activeStartup?.id || "",
+                    history: messages.slice(-6).map(m => ({ role: m.role, text: m.text })),
                 }),
             });
 
@@ -240,7 +271,7 @@ ${allTasks.slice(0, 15).join("\n")}${allTasks.length > 15 ? "\n...and more." : "
 
         } catch (error: any) {
             console.error("Chat error:", error);
-            setMessages((prev) => [...prev, { role: "ai", text: "I'm sorry, I'm having trouble processing your request right now." }]);
+            setMessages((prev) => [...prev, { role: "ai", text: "I apologize, I encountered a temporary connection issue. Please retry in a moment." }]);
         } finally {
             setIsLoading(false);
         }
@@ -254,17 +285,27 @@ ${allTasks.slice(0, 15).join("\n")}${allTasks.length > 15 ? "\n...and more." : "
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                        className="fixed bottom-24 right-6 w-80 md:w-96 z-50 shadow-2xl"
+                        className="fixed bottom-24 right-6 w-80 sm:w-96 z-50 shadow-2xl"
                     >
-                        <Card className="border-primary/20 bg-background/95 backdrop-blur shadow-2xl overflow-hidden">
-                            <CardHeader className="bg-primary/5 p-4 flex flex-row items-center justify-between border-b">
-                                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Card className="border-primary/20 bg-background/95 backdrop-blur shadow-2xl overflow-hidden rounded-2xl">
+                            <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3.5 flex flex-row items-center justify-between border-b">
+                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
                                     <div className="scale-50 -ml-3 -mr-3">
                                         <RobotEye />
                                     </div>
-                                    Dude
+                                    <div>
+                                        <div className="flex items-center gap-1.5">
+                                            <span>Dude</span>
+                                            <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-primary/10 text-primary">
+                                                Advisor
+                                            </span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground font-normal flex items-center gap-1">
+                                            <ShieldCheck className="h-3 w-3 text-emerald-600" /> Confidential & Isolated to Your Startup
+                                        </p>
+                                    </div>
                                 </CardTitle>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsOpen(false)}>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full" onClick={() => setIsOpen(false)}>
                                     <X className="h-4 w-4" />
                                 </Button>
                             </CardHeader>
@@ -281,7 +322,7 @@ ${allTasks.slice(0, 15).join("\n")}${allTasks.length > 15 ? "\n...and more." : "
                                                 </div>
                                             )}
                                             <div
-                                                className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${msg.role === "user"
+                                                className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${msg.role === "user"
                                                     ? "bg-primary text-primary-foreground rounded-tr-sm"
                                                     : "bg-muted/80 text-foreground border border-border/40 rounded-tl-sm"
                                                     }`}
@@ -308,15 +349,37 @@ ${allTasks.slice(0, 15).join("\n")}${allTasks.length > 15 ? "\n...and more." : "
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Quick prompt pills */}
+                                {messages.length <= 4 && !isLoading && (
+                                    <div className="px-3 pb-2 pt-1 border-t border-border/40 bg-muted/10">
+                                        <p className="text-[10px] text-muted-foreground font-semibold mb-1 uppercase tracking-wider">
+                                            Quick Advisory Questions:
+                                        </p>
+                                        <div className="flex flex-wrap gap-1">
+                                            {quickPrompts.slice(0, 3).map((prompt, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => handleSend(prompt)}
+                                                    className="text-[11px] px-2 py-1 rounded-md bg-secondary text-secondary-foreground hover:bg-primary/10 hover:text-primary transition-colors text-left flex items-center gap-1 border border-border/40"
+                                                >
+                                                    <Sparkles className="h-2.5 w-2.5 text-primary" />
+                                                    <span>{prompt}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="p-3 border-t bg-muted/20 flex gap-2">
                                     <Input
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                                        placeholder="Ask about your startup..."
-                                        className="flex-1 bg-background"
+                                        placeholder="Ask about strategy, validation, GTM..."
+                                        className="flex-1 bg-background text-xs sm:text-sm"
                                     />
-                                    <Button size="icon" onClick={handleSend} disabled={isLoading}>
+                                    <Button size="icon" onClick={() => handleSend()} disabled={isLoading || !input.trim()}>
                                         <Send className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -337,6 +400,10 @@ ${allTasks.slice(0, 15).join("\n")}${allTasks.length > 15 ? "\n...and more." : "
                 <div className="scale-100">
                     <RobotEye />
                 </div>
+            </motion.button>
+        </>
+    );
+}
             </motion.button>
         </>
     );
