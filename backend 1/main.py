@@ -380,3 +380,33 @@ async def operations_action_endpoint(req: OperationsActionRequest):
         print(f"Operations Action Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ================================================================
+# SLACK INTEGRATION ENDPOINTS
+# ================================================================
+
+@app.get("/slack/status")
+async def slack_status_endpoint():
+    """Checks whether the Slack bot token is installed and valid."""
+    from api.slack_service import check_slack_connection
+    return await check_slack_connection()
+
+
+class SlackAlertRequest(BaseModel):
+    startup_name: str
+    growth_data: dict
+    channel: str = None
+
+
+@app.post("/slack/post-alert")
+async def slack_post_alert_endpoint(req: SlackAlertRequest):
+    """Posts a formatted DudeX Growth Alert to Slack."""
+    from api.slack_service import post_growth_alert
+    success = await post_growth_alert(
+        startup_name=req.startup_name,
+        growth_data=req.growth_data,
+        channel=req.channel
+    )
+    return {"status": "success" if success else "failed"}
+
+
